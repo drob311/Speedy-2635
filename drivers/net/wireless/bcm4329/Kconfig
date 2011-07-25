@@ -1,3 +1,5 @@
+if BCM4329_PURE_ANDROID
+
 config BCM4329
 	tristate "Broadcom 4329 wireless cards support"
 	depends on MMC
@@ -26,9 +28,4 @@ config BCM4329_NVRAM_PATH
 	---help---
 	  Path to the calibration file.
 
-config BCM4329_ENABLE_PNO_SUPPORT
-        depends on BCM4329
-        bool "Enable PNO_SUPPORT"
-        default n
-        ---help---
-          Enable the use of PNO_SUPPORT methods.
+endif #BCM4329_PURE_ANDROID

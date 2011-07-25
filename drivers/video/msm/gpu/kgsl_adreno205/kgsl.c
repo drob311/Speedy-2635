@@ -65,9 +65,24 @@ static int kgsl_runpending(struct kgsl_device *device)
 	return KGSL_SUCCESS;
 }
 
+static void kgsl_runpending_all(void)
+{
+	struct kgsl_device *device;
+	int i;
+
+	for (i = 0; i < KGSL_DEVICE_MAX; i++) {
+		device = kgsl_driver.devp[i];
+		if (device != NULL)
+			kgsl_runpending(device);
+	}
+	return;
+}
+
 static void kgsl_clean_cache_all(struct kgsl_file_private *private)
 {
 	struct kgsl_mem_entry *entry = NULL;
+
+	kgsl_runpending_all();
 
 	list_for_each_entry(entry, &private->mem_list, list) {
 		if (KGSL_MEMFLAGS_CACHE_MASK & entry->memdesc.priv) {
@@ -547,10 +562,14 @@ static int kgsl_release(struct inode *inodep, struct file *filep)
 	filep->private_data = NULL;
 	list_del(&dev_priv->list);
 
-	for (i = 0; i < KGSL_CONTEXT_MAX; i++) {
-		if (test_bit(i, dev_priv->ctxt_bitmap))
+	while (dev_priv->ctxt_id_mask) {
+		if (dev_priv->ctxt_id_mask & (1 << i)) {
 			device->ftbl.device_drawctxt_destroy(device, i);
+			dev_priv->ctxt_id_mask &= ~(1 << i);
+		}
+		i++;
 	}
+
 	kgsl_put_process_private(device, private);
 
 	if (atomic_dec_return(&device->open_count) == -1) {
@@ -607,7 +626,7 @@ static int kgsl_open(struct inode *inodep, struct file *filep)
 
 	mutex_lock(&kgsl_driver.mutex);
 
-	bitmap_zero(dev_priv->ctxt_bitmap, KGSL_CONTEXT_MAX);
+	dev_priv->ctxt_id_mask = 0;
 	dev_priv->device = device;
 	dev_priv->pid = task_pid_nr(current);
 	filep->private_data = dev_priv;
@@ -747,7 +766,7 @@ uint8_t *kgsl_sharedmem_convertaddr(struct kgsl_device *device,
 
 		yamato_device = (struct kgsl_yamato_device*)device;
 		for (i = 0; i < KGSL_CONTEXT_MAX; i++) {
-			struct kgsl_drawctxt *ctxt = yamato_device->drawctxt[i];
+			struct kgsl_drawctxt *ctxt = &yamato_device->drawctxt[i];
 			struct gmem_shadow_t *s;
 			if ((ctxt == NULL) ||
 				(ctxt->flags == CTXT_FLAGS_NOT_IN_USE))
@@ -860,7 +879,7 @@ static long kgsl_ioctl_rb_issueibcmds(struct kgsl_device_private *dev_priv,
 		goto done;
 	}
 
-	if (!test_bit(param.drawctxt_id, dev_priv->ctxt_bitmap)) {
+	if ((dev_priv->ctxt_id_mask & 1 << param.drawctxt_id) == 0) {
 		result = -EINVAL;
 		KGSL_DRV_ERR("invalid drawctxt drawctxt_id %d\n",
 				      param.drawctxt_id);
@@ -975,7 +994,7 @@ static long kgsl_ioctl_drawctxt_create(struct kgsl_device_private *dev_priv,
 		goto done;
 	}
 
-	set_bit(param.drawctxt_id, dev_priv->ctxt_bitmap);
+	dev_priv->ctxt_id_mask |= 1 << param.drawctxt_id;
 
 done:
 	return result;
@@ -992,7 +1011,7 @@ static long kgsl_ioctl_drawctxt_destroy(struct kgsl_device_private *dev_priv,
 		goto done;
 	}
 
-	if (!test_bit(param.drawctxt_id, dev_priv->ctxt_bitmap)) {
+	if ((dev_priv->ctxt_id_mask & 1 << param.drawctxt_id) == 0) {
 		result = -EINVAL;
 		goto done;
 	}
@@ -1001,7 +1020,7 @@ static long kgsl_ioctl_drawctxt_destroy(struct kgsl_device_private *dev_priv,
 							dev_priv->device,
 							param.drawctxt_id);
 	if (result == 0)
-		clear_bit(param.drawctxt_id, dev_priv->ctxt_bitmap);
+		dev_priv->ctxt_id_mask &= ~(1 << param.drawctxt_id);
 
 done:
 	return result;
@@ -1553,7 +1572,7 @@ static long kgsl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 
 #ifdef CONFIG_MSM_KGSL_MMU
 	case IOCTL_KGSL_SHAREDMEM_FROM_VMALLOC:
-		kgsl_runpending(device);
+		kgsl_runpending_all();
 		result = kgsl_ioctl_sharedmem_from_vmalloc(
 							dev_priv->process_priv,
 							   (void __user *)arg);
@@ -1568,7 +1587,7 @@ static long kgsl_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 #endif
 	case IOCTL_KGSL_SHAREDMEM_FROM_PMEM:
 	case IOCTL_KGSL_MAP_USER_MEM:
-		kgsl_runpending(device);
+		kgsl_runpending_all();
 		result = kgsl_ioctl_map_user_mem(dev_priv->process_priv,
 							(void __user *)arg,
 							cmd);

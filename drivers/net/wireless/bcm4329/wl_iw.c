@@ -271,7 +271,7 @@ wl_iw_set_scan(
 	char *extra
 );
 
-#if !defined(CSCAN)
+#ifndef CSCAN
 static int
 wl_iw_get_scan(
 	struct net_device *dev,
@@ -3823,7 +3823,7 @@ wl_iw_handle_scanresults_ies(char **event_p, char *end,
 	return 0;
 }
 
-#if !defined(CSCAN)
+#ifndef CSCAN
 static uint
 wl_iw_get_scan_prep(
 	wl_scan_results_t *list,
@@ -4911,7 +4911,7 @@ wl_iw_set_power(
 
 	WL_TRACE(("%s: SIOCSIWPOWER\n", dev->name));
 
-	pm = vwrq->disabled ? PM_OFF : PM_FAST;
+	pm = vwrq->disabled ? PM_OFF : PM_MAX;
 
 	pm = htod32(pm);
 	if ((error = dev_wlc_ioctl(dev, WLC_SET_PM, &pm, sizeof(pm))))
@@ -7871,22 +7871,10 @@ wl_iw_event(struct net_device *dev, wl_event_msg_t *e, void* data)
 		cmd = IWEVREGISTERED;
 		break;
 	case WLC_E_ROAM:
-		if (status != WLC_E_STATUS_SUCCESS) {
-			WL_ERROR(("ROAMING did not succeeded, keep status Quo\n"));
-			goto wl_iw_event_end;
-		}
-
-		memcpy(wrqu.addr.sa_data, &e->addr.octet, ETHER_ADDR_LEN);
-		wrqu.addr.sa_family = ARPHRD_ETHER;
-		cmd = SIOCGIWAP;
-
 		if (status == WLC_E_STATUS_SUCCESS) {
-			WL_ASSOC(("%s: WLC_E_ROAM: success\n", __FUNCTION__));
-#if defined(ROAM_NOT_USED)
-			roam_no_success_send = FALSE;
-			roam_no_success = 0;
-#endif
-			goto wl_iw_event_end;
+			memcpy(wrqu.addr.sa_data, &e->addr.octet, ETHER_ADDR_LEN);
+			wrqu.addr.sa_family = ARPHRD_ETHER;
+			cmd = SIOCGIWAP;
 		}
 #if defined(ROAM_NOT_USED)
 		else if (status == WLC_E_STATUS_NO_NETWORKS) {
@@ -8090,6 +8078,7 @@ wl_iw_event(struct net_device *dev, wl_event_msg_t *e, void* data)
 #endif
 
 #if WIRELESS_EXT > 14
+	
 	memset(extra, 0, sizeof(extra));
 	if (wl_iw_check_conn_fail(e, extra, sizeof(extra))) {
 		cmd = IWEVCUSTOM;

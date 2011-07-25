@@ -48,7 +48,6 @@ config ARCH_MSM8X60
 	select MSM_XO
 	select MSM_GPIOMUX
 	select MSM_BUS_SCALING
-	select MSM_SECURE_IO
 
 config ARCH_MSM8X60_LTE
 	bool "MSM8X60_LTE"
@@ -217,8 +216,6 @@ config MSM_DEBUG_UART
 	default 1 if MSM_DEBUG_UART1
 	default 2 if MSM_DEBUG_UART2
 	default 3 if MSM_DEBUG_UART3
-	default 11 if MSM_DEBUG_UART11
-	default 12 if MSM_DEBUG_UART12
 
 choice
 	prompt "Debug UART"
@@ -236,12 +233,6 @@ choice
 
 	config MSM_DEBUG_UART3
 		bool "UART3"
-
-	config MSM_DEBUG_UART11
-		bool "UART11"
-
-	config MSM_DEBUG_UART12
-		bool "UART12"
 endchoice
 
 config FORCE_WARNING_AS_ERROR
@@ -488,7 +479,7 @@ config MACH_MECHA
        help
          Support for the Qualcomm MSM7x30 Mecha board.
 
-config ARCH_MSM7X30_LTE
+config QCT_LTE
        bool "Support QCT LTE function"
        default n
        help
@@ -501,6 +492,16 @@ config MACH_GLACIER
        bool "MSM7x30 GLACIER"
        help
          Support for the Qualcomm MSM7x30 Glacier board.
+
+config OVERLAY_FORCE_UPDATE
+       depends on MACH_GLACIER || MACH_SPEEDY
+       depends on MSM_MDP40
+       default y
+       bool "Force overlay to update screen"
+       help
+         Update the screen when the overlay is updated.
+         Do not use this if your framework updates the
+         screen when the overlay is updated.
 
 config MACH_SAGA
        depends on ARCH_MSM7X30
@@ -657,14 +658,6 @@ config MACH_HOLIDAY
 	select SMP_PARALLEL_START
 	help
 	  Support for the Holiday device.
-
-config MACH_VIGOR
-	depends on ARCH_MSM8X60
-	default n
-	bool "Vigor"
-	select SMP_PARALLEL_START
-	help
-	  Support for the Vigor device.
 
 config MSM_STACKED_MEMORY
 	bool "Stacked Memory"
@@ -1023,7 +1016,7 @@ config MSM_ONCRPCROUTER_DEBUG
 	  Support for debugging the ONCRPC router for communication
 	  between the ARM9 and ARM11
 
-if ARCH_MSM7X30_LTE || ARCH_MSM8X60
+if QCT_LTE || ARCH_MSM8X60
 choice
 	prompt "MSM Shared memory interface version"
 	depends on MSM_SMD
@@ -1062,7 +1055,7 @@ config MSM_SMD_DEBUG
 	  between the ARM9 and ARM11
 
 config MSM_SDIO_AL
-	depends on ((ARCH_MSM7X30 || ARCH_MSM8X60_LTE) && HAS_WAKELOCK)
+	depends on ((ARCH_MSM7X30 || ARCH_MSM8X60) && HAS_WAKELOCK)
 	default n
 	tristate "SDIO-Abstraction-Layer"
 	help
@@ -1520,6 +1513,13 @@ config MICROP_COMMON
 	help
 	  HTC Microp-P support.
 
+config HTC_VOICE_DUALMIC
+	tristate "HTC Dualmic functionality"
+        depends on (ARCH_MSM7X30)
+        default n
+        help
+          Enable dual-mic functinality to do noise suppresion during voice call.
+
 config HTC_HEADSET_MGR
 	tristate "HTC headset manager driver"
 	default n
@@ -1560,20 +1560,6 @@ config HTC_HEADSET_PMIC_ADC
 	default n
 	help
 	  Provides support of HTC PMIC microphone ADC.
-
-config HTC_HEADSET_MISC
-	tristate "HTC MISC headset detection driver"
-	depends on HTC_HEADSET_MGR
-	default n
-	help
-	  Provides support of HTC MISC headset detection.
-
-config HTC_HEADSET_8X60
-	tristate "HTC 8X60 headset detection driver"
-	depends on HTC_HEADSET_MGR
-	default n
-	help
-	  Provides support of HTC 8X60 headset detection.
 
 config HTC_ONMODE_CHARGING
 	bool "On Mode Charging Icon Support"
@@ -1696,13 +1682,6 @@ config MSM_SSBI
 	  Enable support for SSBI bus. This is required for communicatinig with
 	  Qualcomm PMICs and Audio codecs.
 
-config MSM8X60_SSBI
-	tristate "SSBI support"
-	depends on ARCH_MSM8X60
-	help
-	  Enable support for SSBI bus. This is required for communicating with
-	  Qualcomm PMICs and Audio codecs.
-
 config RPC_SIZE_1024
     default n
     bool "set RPC size to 1024"
@@ -1725,6 +1704,11 @@ config ACPUCLOCK_OVERCLOCKING
 	default n
 	depends on CPU_FREQ && !PERFLOCK
 	depends on ARCH_MSM7X30
+
+config JESUS_PHONE
+        bool "Enable support for unstable CPU frequencies"
+        default n
+        depends on ACPUCLOCK_OVERCLOCKING
 
 config HTC_SMEM_MSMC1C2_DEBUG
 	bool "MSMC1/MSMC2 shared memory debug"
@@ -1856,8 +1840,11 @@ config MSM7X30_DDR2
 	depends on ARCH_MSM7X30
 	default n
 
-config SUPPORT_DQ_BATTERY
-	bool "Support DQ battery."
+config STOCK_VOLTAGE
+	bool "HTC Stock Voltages"
 	default n
+        depends on CPU_FREQ && !PERFLOCK
+        depends on ARCH_QSD8X50 || ARCH_MSM7X30 || ARCH_MSM7X00A || ARCH_MSM7227 || ARCH_MSM7225
 	help
-		support DQ battery.
+		Enable HTC stock voltages.
+
