@@ -50,7 +50,6 @@ static struct mutex rpc_connect_lock;
 static struct acdb_ops default_acdb_ops;
 static struct acdb_ops *the_ops = &default_acdb_ops;
 static uint32_t acdb_smem_size;
-static char acdb_init_file[64];
 
 static int acdb_init(char*);
 
@@ -157,17 +156,13 @@ static int update_acdb_table(uint32_t size, int done)
 }
 
 static int htc_reinit_acdb(char* filename) {
-	int rc = 0;
+	int rc;
 
 	if (strlen(filename) < 0) {
 		rc = -EINVAL;
 		goto done;
 	}
-	if (strcmp(filename, acdb_init_file)) {
-		rc = acdb_init(filename);
-		if (!rc)
-			strcpy(acdb_init_file, filename);
-	}
+	rc = acdb_init(filename);
 done:
 	D("%s: load '%s', return %d\n", __func__, filename, rc);
 	return rc;

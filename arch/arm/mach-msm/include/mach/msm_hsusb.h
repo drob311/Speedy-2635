@@ -132,7 +132,6 @@ struct msm_hsusb_platform_data {
 	bool dock_detect;
 
 	int ac_9v_gpio;
-	char *pclk_src_name;
 };
 
 struct msm_otg_platform_data {

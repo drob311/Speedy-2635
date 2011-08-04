@@ -22,7 +22,6 @@
 
 struct htc_headset_gpio_platform_data {
 	unsigned int hpin_gpio;
-	unsigned int key_gpio;
 	unsigned int key_enable_gpio;
 	unsigned int mic_select_gpio;
 };
@@ -31,8 +30,6 @@ struct htc_headset_gpio_info {
 	struct htc_headset_gpio_platform_data pdata;
 	unsigned int hpin_irq;
 	unsigned int hpin_debounce;
-	unsigned int key_irq;
-	unsigned int key_irq_type;
 	int headset_state;
 	struct wake_lock hs_wake_lock;
 };

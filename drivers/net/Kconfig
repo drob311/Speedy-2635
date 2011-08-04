@@ -3301,7 +3301,7 @@ config MSM_RMNET
 
 config MSM_RMNET_SDIO
 	bool "RMNET SDIO Driver"
-	depends on MSM_SDIO_DMUX || (ARCH_MSM7X30_LTE && MSM_SDIO_AL)
+	depends on MSM_SDIO_DMUX || (QCT_LTE && MSM_SDIO_AL)
 	default n
 	help
 	  Implements RMNET over SDIO interface.
@@ -3357,5 +3357,12 @@ config GAN_ETH
         help
           A virutual ethernet device that adds/removes IP/UDP headers,
           as required by Kineto GAN.
+
+config KINETO_GAN
+        tristate "Kineto GAN virtual network interface"
+        depends on ARM
+        default n
+        help
+          Virtual ethernet interface for Kineto GAN transport.
 
 endif # NETDEVICES
