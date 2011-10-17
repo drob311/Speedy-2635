@@ -111,7 +111,7 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
 
-config CPU_FREQ_DEFAUL_GOV_SMARTASS
+config CPU_FREQ_DEFAULT_GOV_SMARTASS
 	bool "smartass"
 	select CPU_FREQ_GOV_SMARTASS
 	select CPU_FREQ_GOV_PERFORMANCE
@@ -221,13 +221,6 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
-config CPU_FREQ_MIN_TICKS
-	int "Ticks between governor polling interval."
-	default 10
-	help
-	  Minimum number of ticks between polling interval for governors.
-
-	  If in doubt, say N.
 
 config CPU_FREQ_GOV_SMARTASS
 	tristate "'smartass' cpufreq governor"
@@ -236,6 +229,12 @@ config CPU_FREQ_GOV_SMARTASS
 	  'smartass' - a "smart" optimized governor for the hero!
 
 	  If in doubt, say N.
+
+config CPU_FREQ_MIN_TICKS
+	int "Ticks between governor polling interval."
+	default 10
+	help
+	  Minimum number of ticks between polling interval for governors.
 
 config CPU_FREQ_SAMPLING_LATENCY_MULTIPLIER
 	int "Sampling rate multiplier for governors."
