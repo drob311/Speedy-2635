@@ -33,7 +33,6 @@
 #include <linux/bma150.h>
 #include <linux/capella_cm3602.h>
 #include <linux/isl29028.h>
-#include <linux/atmel_qt602240.h>
 #include <linux/synaptics_i2c_rmi.h>
 #include <linux/leds-pm8058.h>
 #include <linux/input/pmic8058-keypad.h>
@@ -44,6 +43,7 @@
 #include <asm/setup.h>
 #include <asm/mach/flash.h>
 #include <mach/msm_flashlight.h>
+#include <linux/input/mxt224.h>
 
 #include <mach/system.h>
 #include <mach/gpio.h>
@@ -631,7 +631,7 @@ static struct flashlight_platform_data speedy_flashlight_data = {
 	.flash_duration_ms = 600,
 };
 
-static int speedy_ts_power(int on)
+static int mxt224_power(int on)
 {
 	pr_info("%s: power %d\n", __func__, on);
 
@@ -650,68 +650,87 @@ static int speedy_ts_power(int on)
 	return 0;
 }
 
-struct atmel_i2c_platform_data speedy_ts_atmel_data[] = {
-	{
-		.version = 0x0020,
-		.abs_x_min = 0,
-		.abs_x_max = 1023,
-		.abs_y_min = 0,
-		.abs_y_max = 925,
-		.abs_pressure_min = 0,
-		.abs_pressure_max = 255,
-		.abs_width_min = 0,
-		.abs_width_max = 20,
-		.gpio_irq = SPEEDY_GPIO_TP_INT_N,
-		.power = speedy_ts_power,
-		.config_T6 = {0, 0, 0, 0, 0, 0},
-		.config_T7 = {16, 15, 25},
-		.config_T8 = {10, 0, 5, 2, 0, 0, 5, 15, 5, 170},
-		.config_T9 = {139, 0, 0, 19, 11, 0, 16, 34, 2, 1, 0, 5, 2, 14, 4, 11, 5, 10, 0, 0, 0, 0, 0, 0, 40, 36, 148, 47, 143, 85, 20, 9},
-		.config_T15 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T19 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T20 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T22 = {15, 0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 7, 18, 255, 255, 0},
-		.config_T23 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T24 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T25 = {3, 0, 212, 48, 76, 29, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T27 = {0, 0, 0, 0, 0, 0, 0},
-		.config_T28 = {0, 0, 3, 4, 8, 60},
-		.object_crc = {0x2E, 0x8A, 0x5C},
-		.cal_tchthr = {52, 52},
-		.cable_config = {34, 24, 8, 16},
-	},
-	{
-		.version = 0x0015,
-		.abs_x_min = 0,
-		.abs_x_max = 1023,
-		.abs_y_min = 0,
-		.abs_y_max = 925,
-		.abs_pressure_min = 0,
-		.abs_pressure_max = 255,
-		.abs_width_min = 0,
-		.abs_width_max = 20,
-		.gpio_irq = SPEEDY_GPIO_TP_INT_N,
-		.power = speedy_ts_power,
-		.config_T6 = {0, 0, 0, 0, 0, 0},
-		.config_T7 = {16, 15, 25},
-		.config_T8 = {10, 0, 5, 2, 0, 0, 5, 26},
-		.config_T9 = {139, 0, 0, 19, 11, 0, 16, 26, 2, 1, 0, 5, 2, 14, 4, 11, 5, 10, 0, 0, 0, 0, 0, 0, 40, 36, 148, 47, 143, 85, 20},
-		.config_T15 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T19 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T20 = {7, 0, 0, 0, 0, 0, 0, 27, 25, 4, 15, 0},
-		.config_T22 = {7, 0, 0, 0, 0, 0, 0, 0, 18, 0, 0, 0, 7, 18, 255, 255, 0},
-		.config_T23 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T24 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T25 = {3, 0, 212, 48, 76, 29, 0, 0, 0, 0, 0, 0, 0, 0},
-		.config_T27 = {0, 0, 0, 0, 0, 0, 0},
-		.config_T28 = {0, 0, 3, 4, 8, 60},
-		.object_crc = {0xF6, 0xDE, 0x99},
-		.cable_config_T8 = {10, 0, 5, 2, 0, 0, 5, 31},
-		.cable_config_T9 = {139, 0, 0, 19, 11, 0, 16, 31, 2, 1, 0, 5, 2, 14, 4, 11, 5, 10, 0, 0, 0, 0, 0, 0, 40, 36, 148, 47, 143, 85, 20},
-		.cable_config_T22 = {15, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 7, 18, 255, 255, 0},
-		.cable_config_T28 = {0, 0, 3, 8, 16, 60},
-	},
+static u8 t6_config[] = {GEN_COMMANDPROCESSOR_T6,
+				0, 0, 0, 0, 0, 0};
+static u8 t7_config[] = {GEN_POWERCONFIG_T7,
+				50, 15, 25};
+static u8 t8_config[] = {GEN_ACQUISITIONCONFIG_T8,
+				10, 0, 20, 10, 0, 0, 5, 15};
+static u8 t9_config[] = {TOUCH_MULTITOUCHSCREEN_T9,
+				139, 0, 0, 18, 12, 0, 16, 38, 3, 7, 0, 5, 2,
+				15, 2, 10, 25, 5, 0, 0,
+				0, 0, 0, 0, 0, 0, 159, 47, 149, 81, 40};
+static u8 t15_config[] = {TOUCH_KEYARRAY_T15,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static u8 t18_config[] = {SPT_COMCONFIG_T18,
+				0, 1};
+static u8 t19_config[] = {SPT_GPIOPWM_T19,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; 
+static u8 t20_config[] = {PROCI_GRIPFACESUPPRESSION_T20,
+				7, 0, 0, 0, 0, 0, 0, 80, 40, 4, 35, 10};
+static u8 t22_config[] = {PROCG_NOISESUPPRESSION_T22,
+				15, 0, 0, 0, 0, 0, 0, 0, 16, 0, 1, 0, 7, 18,
+				25, 30, 0};
+static u8 t23_config[] = {TOUCH_PROXIMITY_T23,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static u8 t24_config[] = {PROCI_ONETOUCHGESTUREPROCESSOR_T24,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static u8 t25_config[] = {SPT_SELFTEST_T25, 
+				3, 0, 200, 50, 64, 31, 0, 0, 0, 0, 0, 0, 0, 0};
+static u8 t27_config[] = {PROCI_TWOTOUCHGESTUREPROCESSOR_T27,
+				0, 0, 0, 0, 0, 0, 0};
+static u8 t28_config[] = {SPT_CTECONFIG_T28,
+				0, 0, 2, 4, 8, 60};
+static u8 end_config[] = {RESERVED_T255};
+
+static const u8 *mxt224_config[] = {
+	t6_config,
+	t7_config,
+	t8_config,
+	t9_config,
+	t15_config,
+	t18_config,
+	t19_config,
+	t20_config,
+	t22_config,
+	t23_config,
+	t24_config,
+	t25_config,
+	t27_config,
+	t28_config,
+	end_config,
 };
+
+static struct mxt224_platform_data mxt224_data = {
+	.max_finger_touches = 2,
+	.gpio_read_done = SPEEDY_GPIO_TP_INT_N,
+	.config = mxt224_config,
+	.min_x = 1,
+	.max_x = 1023,
+	.min_y = 2,
+	.max_y = 966,
+	.min_z = 0,
+	.max_z = 255,
+	.min_w = 0,
+	.max_w = 20,
+	.power = mxt224_power,
+};
+
+
+
+static void mxt224_init(void)
+{
+	printk(KERN_INFO "mxt224: entered mxt224_init\n");
+	mxt224_data.max_y = 966;
+	//t9_config[8] = 38;
+	//t9_config[9] = 3;
+	//t9_config[23] = 0;
+	//t9_config[24] = 0;
+	//t9_config[27] = 159;
+	//t9_config[28] = 47;
+	//t9_config[29] = 149;
+	//t9_config[30] = 81;
+}
 
 static int speedy_syn_ts_power(int on)
 {
@@ -749,8 +768,8 @@ static struct tps65200_platform_data tps65200_data = {
 
 static struct i2c_board_info i2c_devices[] = {
 	{
-		I2C_BOARD_INFO(ATMEL_QT602240_NAME, 0x94 >> 1),
-		.platform_data = &speedy_ts_atmel_data,
+		I2C_BOARD_INFO(MXT224_DEV_NAME, 0x94 >> 1),
+		.platform_data = &mxt224_data,
 		.irq = MSM_GPIO_TO_INT(SPEEDY_GPIO_TP_INT_N)
 	},
 	{
@@ -2376,7 +2395,7 @@ static struct kobj_attribute speedy_synaptics_virtual_keys_attr = {
 
 static struct kobj_attribute speedy_virtual_keys_attr = {
 	.attr = {
-		.name = "virtualkeys.atmel-touchscreen",
+		.name = "virtualkeys.mxt224_ts_input",
 		.mode = S_IRUGO,
 	},
 	.show = &speedy_virtual_keys_show,
@@ -2501,9 +2520,10 @@ static void __init speedy_init(void)
 #endif
 	spi_register_board_info(msm_spi_board_info, ARRAY_SIZE(msm_spi_board_info));
 
-	if (!system_rev)
-		speedy_ts_atmel_data[0].config_T9[9] = 7;
+	//if (!system_rev)
+	//	speedy_mxt224_data[0].config_T9[9] = 7;
 
+	mxt224_init();
 	i2c_register_board_info(0, i2c_devices, ARRAY_SIZE(i2c_devices));
 
 	if (system_rev >= 1) {

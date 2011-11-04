@@ -1097,7 +1097,7 @@ static int read_object_table(struct atmel_ts_data *ts)
 
 	ts->object_table = kzalloc(sizeof(struct object_t)*ts->id->num_declared_objects, GFP_KERNEL);
 	if (ts->object_table == NULL) {
-		printk(KERN_ERR "TOUCH_ERR: allocate object_table failed\n");
+		printk(KERN_ERR "%s: allocate object_table failed\n", __func__);
 		return -ENOMEM;
 	}
 
