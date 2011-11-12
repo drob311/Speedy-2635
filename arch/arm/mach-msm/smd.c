@@ -517,7 +517,6 @@ static void handle_smd_irq(struct list_head *list, void (*notify)(void))
 {
 	unsigned long flags;
 	struct smd_channel *ch;
-	int do_notify = 0;
 	unsigned ch_flags;
 	unsigned tmp;
 #ifdef CONFIG_BUILD_CIQ
@@ -532,17 +531,14 @@ static void handle_smd_irq(struct list_head *list, void (*notify)(void))
 			if (ch->recv->fHEAD) {
 				ch->recv->fHEAD = 0;
 				ch_flags |= 1;
-				do_notify |= 1;
 			}
 			if (ch->recv->fTAIL) {
 				ch->recv->fTAIL = 0;
 				ch_flags |= 2;
-				do_notify |= 1;
 			}
 			if (ch->recv->fSTATE) {
 				ch->recv->fSTATE = 0;
 				ch_flags |= 4;
-				do_notify |= 1;
 			}
 		}
 		tmp = ch->recv->state;
@@ -553,8 +549,6 @@ static void handle_smd_irq(struct list_head *list, void (*notify)(void))
 			ch->notify(ch->priv, SMD_EVENT_DATA);
 		}
 	}
-	if (do_notify)
-		notify();
 	spin_unlock_irqrestore(&smd_lock, flags);
 	do_smd_probe();
 }
@@ -1117,9 +1111,9 @@ static irqreturn_t smsm_irq_handler(int irq, void *data)
 int smsm_change_state(enum smsm_state_item item,
 		      uint32_t clear_mask, uint32_t set_mask)
 {
+	unsigned long addr = smd_info.state + item * 4;
 	unsigned long flags;
 	unsigned state;
-	unsigned addr = smd_info.state + item * 4;
 
 	if (!smd_info.ready)
 		return -EIO;

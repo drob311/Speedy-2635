@@ -27,6 +27,7 @@
 #include <mach/qdsp5v2_1x/voice.h>
 #include <mach/htc_acoustic_7x30.h>
 #include <linux/spi/spi_aic3254.h>
+#include <mach/board_htc.h>
 
 static struct mutex bt_sco_lock;
 static struct mutex mic_lock;
@@ -43,23 +44,23 @@ static struct q5v2_hw_info_percentage q5v2_audio_hw[Q5V2_HW_COUNT] = {
 	[Q5V2_HW_HANDSET] = {
 		.max_step = 6,
 		.gain[VOC_NB_INDEX] =
-		{-2000, -1500, -1000, -700, -100, 400, 0, 0, 0, 0},
+		{-2000, -1500, -1000, -700, -100, 480, 0, 0, 0, 0},
 		.gain[VOC_WB_INDEX] =
-		{-1000, -600, -200, 200, 600, 1000, 0, 0, 0, 0},
+		{-1000, -600, -200, 240, 720, 1200, 0, 0, 0, 0},
 	},
 	[Q5V2_HW_HEADSET] = {
 		.max_step = 6,
 		.gain[VOC_NB_INDEX] =
-		{-1600, -1200, -800, -300, 100, 700, 0, 0, 0, 0},
+		{-1600, -1200, -800, -300, 120, 840, 0, 0, 0, 0},
 		.gain[VOC_WB_INDEX] =
-		{-1600, -1200, -800, -300, 100, 700, 0, 0, 0, 0},
+		{-1600, -1200, -800, -300, 120, 840, 0, 0, 0, 0},
 	},
 	[Q5V2_HW_SPEAKER] = {
 		.max_step = 6,
 		.gain[VOC_NB_INDEX] =
-		{-500, -200, 100, 400, 700, 1000, 0, 0, 0, 0},
+		{-500, -200, 100, 480, 840, 1220, 0, 0, 0, 0},
 		.gain[VOC_WB_INDEX] =
-		{-500, -200, 100, 400, 700, 1000, 0, 0, 0, 0},
+		{-500, -200, 100, 480, 840, 1220, 0, 0, 0, 0},
 	},
 	[Q5V2_HW_BT_SCO] = {
 		.max_step = 6,
@@ -71,9 +72,9 @@ static struct q5v2_hw_info_percentage q5v2_audio_hw[Q5V2_HW_COUNT] = {
 	[Q5V2_HW_TTY] = {
 		.max_step = 6,
 		.gain[VOC_NB_INDEX] =
-		{-1600, -1200, -800, -300, 100, 700, 0, 0, 0, 0},
+		{-1600, -1200, -800, -300, 110, 770, 0, 0, 0, 0},
 		.gain[VOC_WB_INDEX] =
-		{-1600, -1200, -800, -300, 100, 700, 0, 0, 0, 0},
+		{-1600, -1200, -800, -300, 110, 770, 0, 0, 0, 0},
 	},
 	[Q5V2_HW_HS_SPKR] = {
 		.max_step = 6,
@@ -85,16 +86,16 @@ static struct q5v2_hw_info_percentage q5v2_audio_hw[Q5V2_HW_COUNT] = {
 	[Q5V2_HW_USB_HS] = {
 		.max_step = 6,
 		.gain[VOC_NB_INDEX] =
-		{-500, -200, 100, 400, 700, 1000, 0, 0, 0, 0},
+		{-500, -200, 100, 440, 770, 1100, 0, 0, 0, 0},
 		.gain[VOC_WB_INDEX] =
-		{-500, -200, 100, 400, 700, 1000, 0, 0, 0, 0},
+		{-500, -200, 100, 440, 770, 1100, 0, 0, 0, 0},
 	},
 	[Q5V2_HW_HAC] = {
 		.max_step = 6,
 		.gain[VOC_NB_INDEX] =
-		{-500, -200, 100, 400, 700, 1000, 0, 0, 0, 0},
+		{-500, -200, 100, 440, 770, 1100, 0, 0, 0, 0},
 		.gain[VOC_WB_INDEX] =
-		{-500, -200, 100, 400, 700, 1000, 0, 0, 0, 0},
+		{-500, -200, 100, 440, 770, 1100, 0, 0, 0, 0},
 	},
 };
 
@@ -304,8 +305,14 @@ int spade_support_aic3254(void)
 int spade_support_back_mic(void)
 {
 #ifdef CONFIG_HTC_VOICE_DUALMIC
-	/* the flag is only enabled by ATT config file */
-	return 1;
+	char *get_mid;
+
+	board_get_mid_tag(&get_mid);
+	if (strstr("PD9812000", get_mid) != NULL ||
+	    strstr("PD9814000", get_mid) != NULL)
+		return 1;
+	else
+		return 0;
 #else
 	return 0;
 #endif

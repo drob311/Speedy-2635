@@ -16,6 +16,7 @@
 #include <linux/notifier.h>
 #include <linux/power_supply.h>
 
+
 /* information about the system we're running on */
 extern unsigned int system_rev;
 
@@ -73,7 +74,9 @@ struct battery_info_reply {
 	u32 full_bat;		/* Full capacity of battery (mAh) */
 	u32 full_level;		/* Full Level */
 	u32 over_vchg;		/* 0:normal, 1:over voltage charger */
+	u32 force_high_power_charging;
 	s32 eval_current;	/* System loading current from ADC */
+	u32 charge_on_plug_enabled; /* 0: Disable, 1:Enable - can be set by user */
 };
 
 struct htc_battery_tps65200_int {
@@ -99,7 +102,7 @@ struct htc_battery_platform_data {
 	int (*func_battery_gpio_init)(void);
 };
 
-#ifdef CONFIG_HTC_BATTCHG
+#if defined(CONFIG_HTC_BATTCHG) || defined(CONFIG_HTC_BATTCHG_VIVO)
 extern int register_notifier_cable_status(struct notifier_block *nb);
 extern int unregister_notifier_cable_status(struct notifier_block *nb);
 #else
@@ -107,10 +110,31 @@ static int register_notifier_cable_status(struct notifier_block *nb) { return 0;
 static int unregister_notifier_cable_status(struct notifier_block *nb) { return 0; }
 #endif
 
-#ifdef CONFIG_BATTERY_DS2784
+#if defined(CONFIG_BATTERY_DS2784)
 extern int battery_charging_ctrl(enum batt_ctl_t ctl);
 #endif
 extern int get_cable_status(void);
+
+#if defined(CONFIG_HTC_BATTCHG) || defined(CONFIG_HTC_BATTCHG_VIVO)
+extern int batt_register_client(struct notifier_block *nb);
+extern int batt_unregister_client(struct notifier_block *nb);
+extern int batt_notifier_call_chain(unsigned long val, void *v);
+#else
+static int batt_register_client(struct notifier_block *nb)
+{
+	return 0;
+}
+
+static int batt_unregister_client(struct notifier_block *nb)
+{
+	return 0;
+}
+
+static int batt_notifier_call_chain(unsigned long val, void *v)
+{
+	return 0;
+}
+#endif
 
 extern unsigned int batt_get_status(enum power_supply_property psp);
 extern int htc_battery_charger_disable(void);

@@ -24,11 +24,17 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
+#include <mach/board.h>
 #include <linux/elan_ktf2k.h>
 #include <linux/device.h>
 #include <linux/jiffies.h>
+#include <mach/msm_hsusb.h>
 
 #define ELAN_I2C_RETRY_TIMES	10
+
+/* config_setting */
+#define NONE				0
+#define CONNECTED			1
 
 #define ELAN_TS_FUZZ 		0
 #define ELAN_TS_FLAT 		0
@@ -83,6 +89,7 @@ struct elan_ktf2k_ts_data {
 	uint8_t packet_reg_addr;
 	uint8_t diag_command;
 	uint8_t diag_mode;
+	uint8_t status;
 };
 
 struct test_mode_cmd_open {
@@ -1278,6 +1285,31 @@ static int elan_ktf2k_ts_register_interrupt(struct i2c_client *client)
 	return err;
 }
 
+static void cable_tp_status_handler_func(int connect_status)
+{
+	struct elan_ktf2k_ts_data *ts;
+	int rc = 0;
+	uint8_t cmd[] = {CMD_W_PKT, 0x56, 0x00, 0x01};
+
+	printk(KERN_INFO "Touch: cable change to %d\n", connect_status);
+	ts = private_ts;
+	if (ts->fw_ver < 0x0038)
+		return;
+	if (connect_status != ts->status) {
+		ts->status = connect_status ? CONNECTED : NONE;
+		if (ts->status == CONNECTED)
+			cmd[2] = 0x1;
+		rc = i2c_elan_ktf2k_write(ts->client, cmd, sizeof(cmd));
+		if (rc < 0)
+			printk(KERN_ERR "TOUCH_ERR: change charger mode failed!\n");
+	}
+}
+
+static struct t_usb_status_notifier cable_status_handler = {
+	.name = "usb_tp_connected",
+	.func = cable_tp_status_handler_func,
+};
+
 static int elan_ktf2k_ts_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
@@ -1328,6 +1360,16 @@ static int elan_ktf2k_ts_probe(struct i2c_client *client,
 
 	elan_ktf2k_ts_get_firmware_version(client);
 
+	if (usb_get_connect_type())
+		ts->status = CONNECTED;
+
+	if (ts->status == CONNECTED && ts->fw_ver >= 0x0038) {
+		uint8_t cmd[] = {CMD_W_PKT, 0x56, 0x01, 0x01};
+
+		printk(KERN_INFO "Touch: set charger mode\n");
+		i2c_elan_ktf2k_write(ts->client, cmd, sizeof(cmd));
+	}
+
 /*
 	if (pdata) {
 		while (pdata->version > ts->fw_ver) {
@@ -1346,10 +1388,17 @@ static int elan_ktf2k_ts_probe(struct i2c_client *client,
 		goto err_input_dev_alloc_failed;
 	}
 	ts->input_dev->name = "elan-touchscreen";
+#ifdef CONFIG_ICS
+//	set_bit(EV_SYN, ts->input_dev->evbit);
+//	set_bit(EV_KEY, ts->input_dev->evbit);
+//	set_bit(BTN_TOUCH, ts->input_dev->keybit);
+//	set_bit(BTN_2, ts->input_dev->keybit);
+#else
 	set_bit(EV_SYN, ts->input_dev->evbit);
 	set_bit(EV_KEY, ts->input_dev->evbit);
 	set_bit(BTN_TOUCH, ts->input_dev->keybit);
 	set_bit(BTN_2, ts->input_dev->keybit);
+#endif
 	set_bit(EV_ABS, ts->input_dev->evbit);
 
 	set_bit(KEY_BACK, ts->input_dev->keybit);
@@ -1405,6 +1454,8 @@ static int elan_ktf2k_ts_probe(struct i2c_client *client,
 
 	dev_info(&client->dev, "Start touchscreen %s in interrupt mode\n",
 		ts->input_dev->name);
+
+	usb_register_notifier(&cable_status_handler);
 
 	return 0;
 

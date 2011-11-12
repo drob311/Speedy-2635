@@ -803,11 +803,13 @@ static void do_read_data(struct work_struct *work)
 
 	hdr.size -= sizeof(pm);
 
-	frag = rr_malloc(hdr.size + sizeof(*frag));
+	frag = rr_malloc(sizeof(*frag));
 	frag->next = NULL;
 	frag->length = hdr.size;
-	if (rr_read(frag->data, hdr.size))
+	if (rr_read(frag->data, hdr.size)) {
+		kfree(frag);
 		goto fail_io;
+	}
 
 #if defined(CONFIG_MSM_ONCRPCROUTER_DEBUG)
 	if ((smd_rpcrouter_debug_mask & RAW_PMR) &&
@@ -1235,7 +1237,7 @@ int msm_rpc_write(struct msm_rpc_endpoint *ept, void *buffer, int count)
 	struct rr_header hdr;
 	struct rpc_request_hdr *rq = buffer;
 	struct rr_remote_endpoint *r_ept;
-	struct msm_rpc_reply *reply;
+	struct msm_rpc_reply *reply = NULL;
 	int max_tx;
 	int tx_cnt;
 	char *tx_buf;
@@ -1297,7 +1299,7 @@ int msm_rpc_write(struct msm_rpc_endpoint *ept, void *buffer, int count)
 		}
 		hdr.dst_pid = reply->pid;
 		hdr.dst_cid = reply->cid;
-		set_avail_reply(ept, reply);
+		//set_avail_reply(ept, reply);
 		IO("REPLY to xid=%d @ %d:%08x (%d bytes)\n",
 		   be32_to_cpu(rq->xid), hdr.dst_pid, hdr.dst_cid, count);
 	}
@@ -1353,6 +1355,13 @@ int msm_rpc_write(struct msm_rpc_endpoint *ept, void *buffer, int count)
 
 	/* if reply, release wakelock after writing to the transport */
 	if (rq->type != 0) {
+		/* Upon failure, add reply tag to the pending list.
+		** Else add reply tag to the avail/free list. */
+		if (count < 0)
+			set_pend_reply(ept, reply);
+		else
+			set_avail_reply(ept, reply);
+
 		spin_lock_irqsave(&ept->reply_q_lock, flags);
 		if (list_empty(&ept->reply_pend_q)) {
 			D("%s: release reply lock on ept %p\n", __func__, ept);

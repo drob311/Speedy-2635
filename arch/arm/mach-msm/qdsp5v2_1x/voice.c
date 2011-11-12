@@ -102,21 +102,21 @@ struct voice_data {
 
 static struct q5v2_hw_info def_audio_hw[Q5V2_HW_COUNT] = {
 	[Q5V2_HW_HANDSET] = {
-		.max_gain[VOC_NB_INDEX] = 400,
+		.max_gain[VOC_NB_INDEX] = 480,
 		.min_gain[VOC_NB_INDEX] = -1600,
-		.max_gain[VOC_WB_INDEX] = 400,
+		.max_gain[VOC_WB_INDEX] = 480,
 		.min_gain[VOC_WB_INDEX] = -1600,
 	},
 	[Q5V2_HW_HEADSET] = {
-		.max_gain[VOC_NB_INDEX] = 900,
+		.max_gain[VOC_NB_INDEX] = 1080,
 		.min_gain[VOC_NB_INDEX] = -1100,
-		.max_gain[VOC_WB_INDEX] = 900,
+		.max_gain[VOC_WB_INDEX] = 1080,
 		.min_gain[VOC_WB_INDEX] = -1100,
 	},
 	[Q5V2_HW_SPEAKER] = {
-		.max_gain[VOC_NB_INDEX] = 1000,
+		.max_gain[VOC_NB_INDEX] = 1220,
 		.min_gain[VOC_NB_INDEX] = -500,
-		.max_gain[VOC_WB_INDEX] = 1000,
+		.max_gain[VOC_WB_INDEX] = 1220,
 		.min_gain[VOC_WB_INDEX] = -500,
 	},
 	[Q5V2_HW_BT_SCO] = {
@@ -138,15 +138,15 @@ static struct q5v2_hw_info def_audio_hw[Q5V2_HW_COUNT] = {
 		.min_gain[VOC_WB_INDEX] = -2000,
 	},
 	[Q5V2_HW_USB_HS] = {
-		.max_gain[VOC_NB_INDEX] = 1000,
+		.max_gain[VOC_NB_INDEX] = 1100,
 		.min_gain[VOC_NB_INDEX] = -500,
-		.max_gain[VOC_WB_INDEX] = 1000,
+		.max_gain[VOC_WB_INDEX] = 1100,
 		.min_gain[VOC_WB_INDEX] = -500,
 	},
 	[Q5V2_HW_HAC] = {
-		.max_gain[VOC_NB_INDEX] = 1000,
+		.max_gain[VOC_NB_INDEX] = 1100,
 		.min_gain[VOC_NB_INDEX] = -500,
-		.max_gain[VOC_WB_INDEX] = 1000,
+		.max_gain[VOC_WB_INDEX] = 1100,
 		.min_gain[VOC_WB_INDEX] = -500,
 	},
 };
@@ -727,8 +727,10 @@ static int voice_thread(void *data)
 						rc = voice_cmd_device_info(v);
 						rc = voice_cmd_acquire_done(v);
 						v->voc_state = VOICE_ACQUIRE;
+#ifdef CONFIG_2WCR
                                                 broadcast_event(AUDDEV_EVT_VOICE_STATE_CHG,
                                                         VOICE_STATE_INCALL, SESSION_IGNORE);
+#endif
 						pr_aud_info("voc_state -> VOICE_ACQUIRE\n");
 					} else {
 						pr_aud_info("start waiting for "
@@ -744,15 +746,19 @@ static int voice_thread(void *data)
 							atomic_dec(&v->rel_start_flag);
 							msm_snddev_withdraw_freq(0,
 								SNDDEV_CAP_TX, AUDDEV_CLNT_VOC);
+#ifdef CONFIG_2WCR
                                                         broadcast_event(AUDDEV_EVT_VOICE_STATE_CHG,
                                                                 VOICE_STATE_OFFCALL, SESSION_IGNORE);
+#endif
 						} else {
 							voice_change_sample_rate(v);
 							rc = voice_cmd_device_info(v);
 							rc = voice_cmd_acquire_done(v);
 							v->voc_state = VOICE_ACQUIRE;
+#ifdef CONFIG_2WCR
                                                         broadcast_event(AUDDEV_EVT_VOICE_STATE_CHG,
                                                                 VOICE_STATE_INCALL, SESSION_IGNORE);
+#endif
 							pr_aud_info("voc_state -> VOICE_ACQUIRE\n");
 						}
 					}
@@ -776,8 +782,10 @@ static int voice_thread(void *data)
 					pr_aud_info("voc_state -> VOICE_RELEASE\n");
 					msm_snddev_withdraw_freq(0, SNDDEV_CAP_TX,
 						AUDDEV_CLNT_VOC);
+#ifdef CONFIG_2WCR
                                         broadcast_event(AUDDEV_EVT_VOICE_STATE_CHG,
                                                 VOICE_STATE_OFFCALL,SESSION_IGNORE);
+#endif
 				} else {
 					/* wait for the dev_state = RELEASE */
 					pr_aud_info("start waiting for "
@@ -793,8 +801,10 @@ static int voice_thread(void *data)
 					pr_aud_info("voc_state -> VOICE_RELEASE\n");
 					msm_snddev_withdraw_freq(0, SNDDEV_CAP_TX,
 						AUDDEV_CLNT_VOC);
+#ifdef CONFIG_2WCR
                                         broadcast_event(AUDDEV_EVT_VOICE_STATE_CHG,
                                                 VOICE_STATE_OFFCALL,SESSION_IGNORE);
+#endif
 				}
 				if (atomic_read(&v->rel_start_flag))
 					atomic_dec(&v->rel_start_flag);
@@ -803,6 +813,10 @@ static int voice_thread(void *data)
 				if (v->voc_state == VOICE_ACQUIRE) {
 					v->voc_state = VOICE_CHANGE;
 					pr_aud_info("voc_state -> VOICE_CHANGE\n");
+#ifdef CONFIG_2WCR
+                                broadcast_event(AUDDEV_EVT_VOICE_STATE_CHG,
+                                        VOICE_STATE_INCALL, SESSION_IGNORE);
+#endif
 				} else
 					MM_AUD_ERR("Get VOICE_CHANGE_START "
 					       "at wrong voc_state %d\n", v->voc_state);
@@ -839,8 +853,10 @@ static int voice_thread(void *data)
 				/* update voice state */
 				v->voc_state = VOICE_ACQUIRE;
 				pr_aud_info("voc_state -> VOICE_ACQUIRE\n");
+#ifdef CONFIG_2WCR
                                 broadcast_event(AUDDEV_EVT_VOICE_STATE_CHG,
                                         VOICE_STATE_INCALL, SESSION_IGNORE);
+#endif
 			} else {
 				MM_AUD_ERR("Get DEV_CHANGE_READY "
 					"at the wrong voc_state %d\n", v->voc_state);
